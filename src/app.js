@@ -17,6 +17,8 @@ let historyAt = 0;
 
 let rebooted = false
 
+let port = false
+
 function showOrHidePopUp(){
   let popUpShow = false
   const bootloader = $_selector(".firmwareBlock .bootloader")
@@ -32,14 +34,14 @@ function showOrHidePopUp(){
     popUpSure.addEventListener('click', async(e)=>{
       if(e){
         $_selector(".content").style.backgroundColor =  'transparent';
+        popUpShow = false
+        checkPopUp(popUpShow)
         if(!rebooted){
           let rebootOrnot = await rebootToBootloader(true)
           rebooted = rebootOrnot
         }else{
-          act(flash);
+          await flash(port)
         }
-        popUpShow = false
-        checkPopUp(popUpShow)
       }
     })
 
@@ -52,8 +54,10 @@ function showOrHidePopUp(){
   })
 
   const flash_ = $_selector(".firmwareBlock .flash")
-  flash_.addEventListener('click', (e)=>{
-    if(e){
+  flash_.addEventListener('click', async(e)=>{
+    port = await backend.request(SAMBA);
+
+    if(e && port){
       $_selector(".popUp .statusPopUp").textContent = "Are you sure to flash?"
       popUpShow = true
       checkPopUp(popUpShow)
@@ -212,10 +216,9 @@ async function rebootToBootloader(bootStart) {
   }
 }
 
-async function flash() {
-  const { file, image } = await chosenImage();
-  const port = await backend.request(SAMBA);
+async function flash(port) {
   const boot = await backend.open(port, 921600);
+  const { file, image } = await chosenImage();
   const bar = $_selector('.firmwareBlock .progress');
   const note = $_selector('.flash-status');
   flashing = true;
@@ -237,7 +240,8 @@ async function flash() {
     note.classList.add('bad')
     note.textContent = `Failed: ${e.message}. The board is still in the bootloader; press Flash to try again.`;
     log(`--- flashing failed: ${e.message} ---`);
-    throw e;
+    // throw e;
+    setStatusError(e)
   } finally {
     flashing = false;
     bar.hidden = true;
