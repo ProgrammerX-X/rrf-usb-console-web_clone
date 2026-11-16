@@ -45,7 +45,6 @@ body{
 }
 .connectionStatus{
     color: #E62703;
-    text-decoration: underline;
     text-underline-offset: 4px;  
 }
 .bad{
@@ -180,6 +179,14 @@ body{
     margin-left: 0.5em
 }
 
+.bootloader{
+    width: auto; 
+    padding-left: 0.5em; 
+    padding-right: 0.5em;
+    margin-left: 3em;
+    text-align: center;
+}
+
 .flash{
     display: flex; 
     align-items: center; 
@@ -191,8 +198,57 @@ body{
 
 .firmwareBlock{
     display:flex; 
-    align-items: center; 
+    align-items: center;
 }
+
+.blurForBodyWithPopUp{
+    filter: blur(5px); /* add to change body with popup */
+}
+
+/* + add to body overflow-y: hidden */
+
+.popUpBlock{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    height: 100%;
+    position:fixed;
+    z-index: 1;
+    overflow:hidden;
+}
+
+.popUp{
+    display:flex;
+    flex-direction: column;
+    align-items: center;
+    background-color: #242424;
+    border: 3px solid #8F2410;
+    width: 50%;
+    height: 50%;
+    border-radius: 1.5em;
+    font-size: 2em;
+    padding: 0.5em
+}
+
+.popUpBlockButtons{
+    display: flex;
+    width:55%;
+    height:100%;
+    font-size: 0.5em;
+    justify-content: space-between;
+    align-items: end;
+    margin-bottom: 2.5em
+}
+
+.popUpSure,
+.popUpCancel{
+    width:5em;
+    padding:0.5em;
+    transform: translateX(0);
+}
+
+
 /* hover and animation */
 
 .connectButton:hover,

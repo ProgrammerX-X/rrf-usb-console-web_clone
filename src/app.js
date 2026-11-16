@@ -15,6 +15,69 @@ const lines = [];             // the whole session, for export
 const history = [];
 let historyAt = 0;
 
+let rebooted = false
+
+function showOrHidePopUp(){
+  let popUpShow = false
+  const bootloader = $_selector(".firmwareBlock .bootloader")
+  bootloader.addEventListener('click', (e)=>{
+    if(e){
+      $_selector(".popUp .statusPopUp").textContent = "Are you sure to reboot?"
+      popUpShow = true
+      checkPopUp(popUpShow)
+    }
+  })
+
+  const popUpSure = $_selector('.popUpBlockButtons .popUpSure')
+    popUpSure.addEventListener('click', async(e)=>{
+      if(e){
+        $_selector(".content").style.backgroundColor =  'transparent';
+        if(!rebooted){
+          let rebootOrnot = await rebootToBootloader(true)
+          rebooted = rebootOrnot
+        }else{
+          act(flash);
+        }
+        popUpShow = false
+        checkPopUp(popUpShow)
+      }
+    })
+
+  const popUpCancel = $_selector('.popUpBlockButtons .popUpCancel')
+  popUpCancel.addEventListener('click', (e)=>{
+    if(e){
+      popUpShow = false
+      checkPopUp(popUpShow)
+    }
+  })
+
+  const flash_ = $_selector(".firmwareBlock .flash")
+  flash_.addEventListener('click', (e)=>{
+    if(e){
+      $_selector(".popUp .statusPopUp").textContent = "Are you sure to flash?"
+      popUpShow = true
+      checkPopUp(popUpShow)
+    }
+  })
+}
+
+showOrHidePopUp()
+
+function checkPopUp(popUpShow){
+  const popUp = $_selector(".popUpBlock")
+  if(popUpShow){
+      $_selector(".content").style.filter = 'blur(5px)'
+      popUp.style.display = 'flex'
+      $_selector("body").style.overflowY = 'hidden'
+      $_selector(".content").style.backgroundColor =  '#0F0F0F87';
+    }else{
+      $_selector(".content").style.filter = 'blur(0px)'
+      popUp.style.display = 'none'
+      $_selector("body").style.overflowY = 'auto'
+      $_selector(".content").style.backgroundColor =  'transparent';
+    }
+}
+
 function setStatus(text, bad = false) {
   $_selector('.header .connectionStatus').textContent = text;
   $_selector('.consoleBlock .error').textContent = ''
@@ -43,7 +106,6 @@ function log(text) {
   el.append(line + '\n');
   while (el.childNodes.length > MAX_SHOWN) el.firstChild.remove();
   // if (stick) 
-  console.log(el.scrollTop, el.scrollHeight, el)
   requestAnimationFrame(()=>{
     el.scrollTop = el.scrollHeight;
   })
@@ -121,21 +183,33 @@ function exportLog() {
 
 async function chosenImage() {
   const file = $_selector('.custom-file-upload .image').files[0];
-  if (!file) throw new Error('Choose the firmware .bin first');
-  const image = new Uint8Array(await file.arrayBuffer());
-  checkImage(image, 2 * 1024 * 1024);              // the size is checked against the real chip before erasing
-  return { file, image };
+  if (file === undefined){
+    setStatusError('Choose the firmware .bin first')
+    return {reboot: false, file:undefined, image: undefined}
+  }else{
+    setStatusError('')
+    const image = new Uint8Array(await file.arrayBuffer());
+    checkImage(image, 2 * 1024 * 1024);              // the size is checked against the real chip before erasing
+    return {reboot: true, file, image };
+  }
 }
 
-async function rebootToBootloader() {
-  if (!link) throw new Error('Connect to the board first');
-  await chosenImage();                              // never open the one-way door without usable firmware in hand
-  if (!confirm('Reboot the board into its ROM bootloader?\n\nIt will not start its firmware again until new firmware has been flashed in step 3.')) return;
-  reconnect = false;
-  await sendLine('M999 P"ERASE"');
-
-  $_selector('.flash-status').textContent = 'Sent. When the board has re-enumerated as a bootloader, press Flash.';
-  $_selector('.flash-status').classList.add('successful')
+async function rebootToBootloader(bootStart) {
+  if (!link){
+     setStatusError('Error: connect to the board first');
+  }else{
+    let chooseResp = await chosenImage();                             // never open the one-way door without usable firmware in hand
+    if(bootStart==true && chooseResp.reboot==true){
+      // if (!confirm('Reboot the board into its ROM bootloader?\n\nIt will not start its firmware again until new firmware has been flashed in step 3.')) return;
+      reconnect = false;
+      await sendLine('M999 P"ERASE"');
+      $_selector('.flash-status').textContent = 'Sent. When the board has re-enumerated as a bootloader, press Flash.';
+      $_selector('.flash-status').classList.add('successful')
+      return true
+    }else{
+      return false
+    }
+  }
 }
 
 async function flash() {
@@ -149,12 +223,13 @@ async function flash() {
   $_selector('.firmwareBlock .flash').disabled = true;
   log(`--- flashing ${file.name} (${image.length} bytes) ---`);
   try {
+    setStatusError('')
     const result = await flashFirmware(boot, image, (stage, done, total) => {
       bar.max = total;
       bar.value = done;
+      note.classList.add('successful')
       note.textContent = `${stage}…`;
     }, log);
-    note.classList.add('successful')
     note.textContent = `Flashed ${file.name} to ${result.chip} (${result.pages} pages, verified). The board is restarting; power-cycle it if the console does not come back.`;
     log(`--- flashed and verified, ${result.chip} ---`);
     reconnect = true;
@@ -175,7 +250,7 @@ async function flash() {
 function setStatusError(e){
   try{
     const getErrorField = document.querySelector('.consoleBlock .error')
-    getErrorField.textContent = e.message
+    getErrorField.textContent = e
   }catch(e){
     console.log(`Error: ${e}.`)
   }
@@ -199,8 +274,8 @@ if (!backend) {
   backend.events.addEventListener('connect', () => act(tryReconnect));
   setInterval(() => act(tryReconnect), 1000);
   $_selector('.header .connectButton').onclick = () => act(toggleConnection);
-  $_selector('.firmwareBlock .bootloader').onclick = () => act(rebootToBootloader);
-  $_selector('.firmwareBlock .flash').onclick = () => act(flash);
+  $_selector('.firmwareBlock .bootloader').onclick = () => act(showOrHidePopUp);
+  // $_selector('.popUpBlockButtons .popUpSure').onClick = () => {console.log(rebooted)}
 }
 
 $_selector('.export').onclick = exportLog;
@@ -210,7 +285,7 @@ $_selector('.clear').onclick = () => {
   $_selector('.terminalOptions .count').textContent = 'lines 0';
 };
 $_selector('.inputInConsole .terminalSendButton').addEventListener("click", (e)=>{
-   e.preventDefault();
+  e.preventDefault();
   sendInfo()
 })
 

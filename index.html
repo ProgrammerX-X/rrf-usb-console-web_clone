@@ -4,12 +4,22 @@
         <meta charset="UTF-8" lang="en">
         <link rel="stylesheet" href="./src/changedStyle.css">
     </head>
-    <body style='background-color: #0F0F0F'>
+    <body style='background-color: #0F0F0F;'>
         <script type="module" src="./src/app.js"></script>
         <script type="module" src="./src/samba.js"></script>
         <script type="module" src="./src/serial.js"></script>
+
+        <div class="popUpBlock" style="display:none">
+            <div class="popUp">
+                <h3 style="margin-top: 2.5em; text-align: center" class="statusPopUp"></h3>
+                <div class="popUpBlockButtons">
+                    <div class="terminalSendButton popUpSure">Sure</div>
+                    <div class="terminalSendButton popUpCancel">Cancel</div>
+                </div>
+            </div>
+        </div>
+        
         <div class="content">
-            
             <div class="header">
                 <h1 style="color: #F5F5F5">RRF USB Console</h1>
                 <div class="connectButton marg">
@@ -60,10 +70,10 @@
                     </li>
                     <li>
                         <div class="firmwareBlock">
-                            <span>Put the board into its ROM bootloader: fit the ERASE jumper and power-cycle, click "Reboot or bootloader":</span>
-                            <div class="terminalSendButton bootloader" style="width: auto; padding-left: 0.5em; padding-right: 0.5em; margin-left: 3em;">Reboot or bootloader</div>
+                            <span style="line-height: 2">Put the board into its ROM bootloader: fit the ERASE jumper and power-cycle, click "Reboot or bootloader":</span>
+                            <div class="terminalSendButton bootloader">Reboot or bootloader</div>
                         </div>
-                        <span>The board will not start its firmware again until step 3 has finished.</span>
+                        <span style="line-height: 2;">The board will not start its firmware again until step 3 has finished.</span>
                         <p class="flash-status" class="note"></p>
                     </li>
                     <li>
@@ -75,7 +85,6 @@
                     </li>
                 </ol>
             </div>
-
         </div>
     </body>
 </html>
